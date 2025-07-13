@@ -1,28 +1,35 @@
 #!/bin/bash
 set -e
 
-echo "Killing old screen sessions..."
+echo "🔁 Cleaning up old screen sessions..."
 pkill screen || true
 
-echo "Installing required packages..."
-sudo apt update
-sudo apt install -y screen netcat
+echo "📂 Creating logs directory..."
+mkdir -p logs
 
-# Start keep-alive server
-while echo -e "HTTP/1.1 200 OK\r\n\r\nKeep Alive" | nc -l -p 8080; do :; done &
-echo "Launching Nexus CLI nodes..."
-NODE_IDS=(
-  "6633931" "6694030" "7043877" "7538118" "7377559"
-  "7897705" "7842319" "7830090" "7565618"
-  "14629480" "13332269" "13156545" "8161206"
-  "14997845" "14997846" "14997847"
-  "15244908" "15244905" "14997849"
+echo "🚀 Starting Nexus CLI nodes..."
+
+nodes=(
+    6633931
+    6694030
+    7043877
+    7538118
+    7377559
+    7897705
+    7842319
+    7830090
+    7565618
+    14629480
+    13332269
+    13156545
+    8161206
 )
-for i in "${!NODE_IDS[@]}"; do
-  node="${NODE_IDS[$i]}"
-  session="nexusnode$((i+1))"
-  screen -dmS "$session" bash -c "nexus-cli start --node-id $node"
-  echo "🚀 Started node $node in session $session"
+
+for node in "${nodes[@]}"; do
+    session="nexusnode_$node"
+    echo "🟢 Launching node $node in session $session..."
+    screen -L -Logfile "logs/$session.log" -dmS "$session" bash -c "./nexus-cli start --node-id $node"
 done
 
-echo "✅ All nodes launched. Use 'screen -r nexusnode1' to view logs"
+echo "🌐 Keeping Gitpod alive on port 8080..."
+while true; do nc -lkp 8080 -e echo "🔄 Nexus CLI running..."; done
